@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/polymer/0.3.3/platform.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <!--<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>-->
+    <script src="libraries/math-tex-master/math-tex.js"></script>
+    <script src="libraries/math-tex-master/math-tex-controller.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="BrowserCSS.css">
+
+</head>
+<body>
+
+    <div id="documentLoader"></div>
+
+    <div id="leftButtonWrapper">
+        <img id="leftButton" src="Assets/GUI/PageLeft.png" alt="no pic"> </img>
+    </div>
+    <div id="rightButtonWrapper">
+        <img id="rightButton" src="Assets/GUI/PageRight.png" alt="no pic"> </img>
+    </div>
+
+    <div id="scrollBar"></div> 
+    <div id="scrollControlBar"></div> 
+
+    <div id="master">
+        <div id="documentContainer"></div>
+    </div>
+
+    <br><br><br><br><br>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.js"></script>
+    <script>
+
+        var QuestionAnswerCSS;
+
+        // $(document).ready(function() {
+        //     $.when($.get("QuestionCSS.css"))
+        //     .done(function(response) {
+        //         QuestionAnswerCSS = response;
+        //         StartPageLoading();
+        //     });
+        // })        
+
+        var pageDisplayer = document.createElement("p");
+        pageDisplayer.style = "position:fixed; bottom: 1%; left: 1%;"
+        document.body.appendChild(pageDisplayer);
+
+        //Set styles of scroll controls:
+        document.getElementById("scrollBar").style = "" +
+            "position: fixed;" + 
+            "bottom: 2%; left: 15%;" + 
+            "width: 70%; height: 2%;" +
+            "background-color: grey; opacity: 0.2;";
+        
+        var scrollControlBarStyle = "" +
+            "position: fixed;" + 
+            "bottom: 2%;" + 
+            "width: 10%; height: 2%;" +
+            "background-color: grey; opacity: 0.2;";
+
+        var scrollControlBarStyleHover = "" +
+            "position: fixed;" + 
+            "bottom: 2%;" + 
+            "width: 10%; height: 2%;" +
+            "background-color: grey; opacity: 0.8;";
+
+        var scrollControlObject = document.getElementById("scrollControlBar");
+        scrollControlObject.style=scrollControlBarStyle;
+        var scrollControlObjectX = scrollControlObject.style.left = (jQuery(window).width()*0.15).toString(); 
+        scrollControlObject.style.left = scrollControlObjectX + "px";
+
+        $("#scrollControlBar").hover(
+            function() {scrollControlObject.style = scrollControlBarStyleHover + "left: " + scrollControlObjectX + "px;";}, 
+            function() {scrollControlObject.style = scrollControlBarStyle + "left: " + scrollControlObjectX + "px;";})
+
+        //Change loaded pages:
+        //-----------------------------------------------------------------------------------
+            //Helper function
+        var changePage = function(PagesToChangeBy) {
+            activePage += PagesToChangeBy;
+            if(activePage <= 1) {activePage = 1;}
+            else if(activePage > amountOfPages) {activePage = amountOfPages;}
+
+            scrollControlObjectX = 0.15*jQuery(window).width() + (activePage-1)*((0.75*jQuery(window).width())/amountOfPages);
+            scrollControlObject.style = scrollControlBarStyle + "left: " + scrollControlObjectX + "px;";
+
+            pageDisplayer.textContent="Side: " + activePage.toString();
+
+            window.scrollTo(0, 0);
+
+            document.getElementById("documentContainer").innerHTML=pages[activePage];
+            MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
+        }
+
+            //Click on screen buttons
+        document.getElementById("leftButton").addEventListener("click",function() {changePage(-1);})
+        document.getElementById("rightButton").addEventListener("click",function() {changePage(1);})
+
+            //Use keyboard
+        document.addEventListener("keyup",(e)=>{const keyName = e.key;
+            if     (keyName === "ArrowRight") {changePage(1); return;}
+            else if(keyName === "ArrowLeft")  {changePage(-1); return;}
+        })
+
+            //Use scrollwheel
+        window.addEventListener("wheel", event => {if(!event.ctrlKey && event.shiftKey) {changePage(Math.sign(event.deltaY));}});
+
+            //Use scroll bar
+        var usingScrollBar;
+        var distanceToMouse;
+   
+        scrollControlObject.addEventListener("mousedown", function(event) {
+            usingScrollBar = true;
+            distanceToMouse = event.clientX - scrollControlObjectX;
+        })
+        document.addEventListener("mouseup", function() {if(usingScrollBar){usingScrollBar = false;}})
+
+        window.onmousemove = function(event){
+            if(usingScrollBar) {
+                
+                var qW = jQuery(window).width();
+
+                scrollControlObjectX = event.clientX - distanceToMouse;
+                if(scrollControlObjectX < qW*0.15) {scrollControlObjectX = (qW*0.15);}
+                else if(scrollControlObjectX > qW*0.75) {scrollControlObjectX = qW*0.75;}
+
+                var measuredPage = 1 + Math.round(((amountOfPages - 1)*(scrollControlObjectX - 0.15*qW))/(0.7*qW));
+                if(measuredPage != activePage) {
+                    activePage = measuredPage;
+                    document.getElementById("documentContainer").innerHTML=pages[activePage];
+                }
+
+                scrollControlObject.style.left = scrollControlObjectX + "px";
+            }
+        }
+
+        //-----------------------------------------------------------------------------------
+
+        //Load pages
+        //-----------------------------------------------------------------------------------
+        //var chapterPrefix = "/Chapters/1Arithemetic/TalopgaverOgIntuition/FysiskeKvantiteter/";
+        var chapterPrefix = "/Talsystemmer/";
+        var pages = []; var activePage = null; var amountOfPages;
+       
+        var StartPageLoading = function() {
+
+            $("#documentLoader").load(chapterPrefix + "1.html",function() {
+                var loadedHTML = document.getElementById("documentLoader").innerHTML;
+                
+                //Figure out how many pages there are, and whether you should only load one
+                var testingPage;
+
+                var cutoff = loadedHTML.substring(loadedHTML.indexOf("!") + 3,);
+                cutoff = cutoff.substring(0, cutoff.indexOf("-")); 
+
+                if(cutoff.includes("x")) { //Load only one specific page (for testing)
+                    activePage = cutoff.substring(cutoff.indexOf(".") + 1);
+                    $("#documentLoader").load(chapterPrefix + activePage + ".html",function() {
+                        activePage = document.getElementById("documentLoader").innerHTML;
+                        document.getElementById("documentContainer").innerHTML=activePage;
+                        document.getElementById("documentLoader").innerHTML="";
+                    });
+                }
+                else { // Load all pages into list, and display the first element;
+                    
+                    amountOfPages = parseInt(cutoff);
+                    activePage = parseInt(cutoff.substring(cutoff.indexOf(".") + 1));
+
+                    pages.push(loadedHTML);
+                    
+                    var myIndex = 0;
+                    var LoadPage = function() {
+                        myIndex++;
+                        if(myIndex <= amountOfPages) {
+                            $("#documentLoader").load(chapterPrefix + myIndex + ".html", function() {                                
+                                if(chapterPrefix == "/Talsystemmer/") {pages.push(JaxToCustomElementPage(this.innerHTML));}
+                                else {pages.push(ProcessPage(this.innerHTML));}
+
+                                this.innerHTML =""; 
+                                LoadPage();
+                            }) 
+                        }
+                        else {
+                            document.getElementById("documentContainer").innerHTML=pages[activePage];
+                            //MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
+                        }
+                    }
+                    LoadPage();
+
+                }
+
+            });
+
+        }
+        //-----------------------------------------------------------------------------------
+
+        //Proces HTML page
+        //-----------------------------------------------------------------------------------
+        const ProcessPage = function(s) {
+            var indexer = 0;
+            var LLow = s.length - 1;
+            while(indexer < LLow) {
+                
+                //Question tags
+                if(s.charAt(indexer)   == '<' && 
+                   s.charAt(indexer+1) == 'q' &&
+                   s.charAt(indexer+2) == '-' &&
+                   s.charAt(indexer+3) == 's' &&
+                   s.charAt(indexer+4) == 't' &&
+                   s.charAt(indexer+5) == 'i' &&
+                   s.charAt(indexer+6) == 'o' &&
+                   s.charAt(indexer+7) == 'n') {
+
+                    var tagStartEndIndex = indexer + 8;
+                    while(s.charAt(tagStartEndIndex) != '>' && tagStartEndIndex < LLow) {tagStartEndIndex++;}
+
+                    var tagEndStartIndex = tagStartEndIndex + 1;
+                    while(!(s.charAt(tagEndStartIndex)   == '<' &&
+                            s.charAt(tagEndStartIndex+1) == '/' &&
+                            s.charAt(tagEndStartIndex+2) == 'q' &&
+                            s.charAt(tagEndStartIndex+3) == '-' &&
+                            s.charAt(tagEndStartIndex+4) == 's' &&
+                            s.charAt(tagEndStartIndex+5) == 't' &&
+                            s.charAt(tagEndStartIndex+6) == 'i' &&
+                            s.charAt(tagEndStartIndex+7) == 'o' &&
+                            s.charAt(tagEndStartIndex+8) == 'n') && tagEndStartIndex < LLow) {tagEndStartIndex++;}            
+
+                    var questionContent = HtmlToContent(s.substring(tagStartEndIndex+1,tagEndStartIndex));  
+
+                    s=s.substring(0,tagStartEndIndex) + 
+                      " content = '" + 
+                      questionContent + 
+                      "'></q-stion>" + 
+                      s.substring(tagEndStartIndex + 10,LLow);
+                    LLow=s.length - 1;
+                }
+                
+                //Answer tags
+                if(s.charAt(indexer)   == '<' && 
+                   s.charAt(indexer+1) == 'a' &&
+                   s.charAt(indexer+2) == 'n' &&
+                   s.charAt(indexer+3) == 's' &&
+                   s.charAt(indexer+4) == 'w' &&
+                   s.charAt(indexer+5) == 'e' &&
+                   s.charAt(indexer+6) == 'r') {
+
+                    var tagStartEndIndex = indexer + 8;
+                    while(s.charAt(tagStartEndIndex) != '>' && tagStartEndIndex < LLow) {tagStartEndIndex++;}
+
+                    var tagEndStartIndex = tagStartEndIndex + 1;
+                    while(!(s.charAt(tagEndStartIndex) == '<' &&
+                          s.charAt(tagEndStartIndex+1) == '/' &&
+                          s.charAt(tagEndStartIndex+2) == 'a' &&
+                          s.charAt(tagEndStartIndex+3) == 'n' &&
+                          s.charAt(tagEndStartIndex+4) == 's' &&
+                          s.charAt(tagEndStartIndex+5) == 'w' &&
+                          s.charAt(tagEndStartIndex+6) == 'e' &&
+                          s.charAt(tagEndStartIndex+7) == 'r') && tagEndStartIndex < LLow) {tagEndStartIndex++;}
+                    
+                    var answerHTML = HtmlToContent(s.substring(tagStartEndIndex+1,tagEndStartIndex));
+
+                    s=s.substring(0,tagStartEndIndex) + 
+                      " content = '" + 
+                      answerHTML + 
+                      "'></answer-box>" + 
+                      s.substring(tagEndStartIndex + 13,LLow);
+                    LLow=s.length - 1;
+                }
+
+                //Math
+                if(s.charAt(indexer) == '_' && s.charAt(indexer+1) == '(') {
+
+                    var endIndex = indexer + 2;
+                    while(!(s.charAt(endIndex) == '_' && s.charAt(endIndex+1) == ')') && endIndex < LLow) {
+                        endIndex++;
+                    }
+                    s = s.substring(0,indexer)          + 
+                        "<math-tex>"                    +
+                        s.substring(indexer+2,endIndex) +
+                        "</math-tex>"                   +
+                        s.substring(endIndex+2,LLow);
+                    LLow = s.length - 1;
+                    indexer=endIndex+2;
+                } 
+
+                indexer++;
+            }
+            return s;
+        }
+
+        const HtmlToContent = function(s) {
+            //var sF=QuestionAnswerCSS;
+            var sF = "";
+            const L = s.length;
+            for(var i = 0; i < L; i++) {
+                if(s.charAt(i)=='<'){sF+="&#60";}
+                else if(s.charAt(i)=='>'){sF+="&#62";}
+                else {sF+=s.charAt(i);}
+            }
+            return sF;
+        }
+        
+
+        const JaxToCustomElementContent = function(s) {
+            var indexer = 0;
+            var LLow = s.length - 1;
+            while(indexer < LLow) {
+                if(s.charAt(indexer) == '_' && s.charAt(indexer+1) == '(') {
+
+                    var endIndex = indexer + 2;
+                    while(!(s.charAt(endIndex) == '_' && s.charAt(endIndex+1) == ')') && endIndex < LLow) {
+                        endIndex++;
+                    }
+                    s = s.substring(0,indexer)                + 
+                        "&#60math-tex&#62"                    +
+                        s.substring(indexer+2,endIndex) +
+                        "&#60/math-tex&#62"                   +
+                        s.substring(endIndex+2,LLow);
+                    LLow = s.length - 1;
+                    indexer=endIndex+2;
+                } 
+                indexer++;
+            }
+            return s;
+        }
+
+        const JaxToCustomElementPage = function(s) {
+            var indexer = 0;
+            var LLow = s.length - 1;
+            while(indexer < LLow) {
+                if(s.charAt(indexer) == '_' && s.charAt(indexer+1) == '(') {
+                    var endIndex = indexer + 2;
+                    while(!(s.charAt(endIndex) == '_' && s.charAt(endIndex+1) == ')') && endIndex < LLow) {
+                        endIndex++;
+                    } 
+                    s = s.substring(0,indexer)          + 
+                        "<math-tex>"                    +
+                        s.substring(indexer+2,endIndex) +
+                        "</math-tex>"                   +
+                        s.substring(endIndex+2,LLow);
+                    LLow = s.length - 1;
+                    indexer=endIndex+2;
+                } 
+                indexer++;
+            }
+            return s;
+        }
+        //-----------------------------------------------------------------------------------   
+
+        //Custom elements:
+        class ChapterTitle extends HTMLElement {
+            constructor() {
+                super();
+
+                //Get attributes
+                var chapter = this.getAttribute('chapter');
+                var color = this.getAttribute('color');
+
+                //Create shadow
+                var shadow = this.attachShadow({mode: 'open'});
+
+                //Make element
+                var titleText = document.createElement('p');
+
+                titleText.innerHTML = chapter;
+                titleText.style = "font-size: 90px;" +
+                                  "letter-spacing: 12px;" + 
+                                  "font-family: Georgia, 'Times New Roman', Times, serif"  +
+                                  "font-weight: bolder;" + 
+                                  "color: " + color + ";" + 
+                                  "margin-bottom: -120px;";
+
+                var underline = document.createElement('p');
+                underline.innerHTML = "__ __ __ __ ____";
+                underline.style = "font-size: 70px; margin-bottom: 50px"
+
+                shadow.appendChild(titleText);
+                shadow.appendChild(underline)
+
+            }
+        }
+        customElements.define("chapter-title",ChapterTitle);
+
+        class SectionTitle1 extends HTMLElement {
+            constructor() {
+                super();
+
+                //Get attributes
+                var chapter = this.getAttribute('section');
+                var color = this.getAttribute('color');
+
+                //Create shadow
+                var shadow = this.attachShadow({mode: 'open'});
+
+                //Make element
+                var centeringContainer = document.createElement('div');
+                centeringContainer.style.textAlign="center";
+                centeringContainer.style.width="450px";
+                var titleText = document.createElement('p');
+
+                titleText.innerHTML = chapter;
+                titleText.style = "font-size: 50px;" +
+                                  "letter-spacing: 8px;" + 
+                                  "font-family: impact;"  +
+                                  "font-weight: light;" + 
+                                  "margin-bottom: 15px;" + 
+                                  "margin-left: 60px;" +
+                                  "color: " + color + ";";
+
+                centeringContainer.appendChild(titleText);
+                shadow.appendChild(centeringContainer);
+
+            }
+        }
+        customElements.define("section-title1",SectionTitle1);
+
+        class SectionTitle2 extends HTMLElement {
+            constructor() {
+                super();
+
+                //Get attributes
+                var chapter = this.getAttribute('section');
+                var color = this.getAttribute('color');
+
+                //Create shadow
+                var shadow = this.attachShadow({mode: 'open'});
+
+                //Make element
+                var titleText = document.createElement('p');
+
+                titleText.innerHTML = chapter;
+                titleText.style = "font-size: 30px;" +
+                                  "letter-spacing: 2px;" + 
+                                  "font-family: Segoe UI;"  +
+                                  "font-weight: light;" + 
+                                  "margin-bottom: 15px;" + 
+                                  "color: " + color + ";";
+
+                shadow.appendChild(titleText);
+
+            }
+        }
+        customElements.define("section-title2",SectionTitle2);
+
+        class SectionTitle3 extends HTMLElement {
+            constructor() {
+                super();
+
+                //Get attributes
+                var chapter = this.getAttribute('section');
+
+                //Create shadow
+                var shadow = this.attachShadow({mode: 'open'});
+
+                //Make element
+                var titleText = document.createElement('p');
+
+                titleText.innerHTML = chapter + ":";
+                titleText.style = "font-size: 20px;" +
+                                  "letter-spacing: 2px;" + 
+                                  "font-family: Segoe UI;"  +
+                                  "font-weight: bold;" + 
+                                  "margin-bottom: 10px;" 
+
+                shadow.appendChild(titleText);
+
+            }
+        }
+        customElements.define("section-title3",SectionTitle3);
+
+        class QuestionStart extends HTMLElement {
+        constructor() {
+            super();
+
+            //Get attributes
+            var group1 = this.getAttribute('1');
+            var group2 = this.getAttribute('2');
+            var group3 = this.getAttribute('3');
+            var optionalTitle = this.getAttribute("title");
+            const content = this.getAttribute('content');
+            var customWidth = this.getAttribute("customWidth");
+            if(customWidth == null) {customWidth = "500";}
+            var docHeight = this.getAttribute('h');
+
+            //Create shadow
+            var shadow = this.attachShadow({mode: 'open'});
+
+            //Create the question title
+            var BoxTitle = document.createElement("p");
+            var BoxTitleString = "Spørgsmål";
+     
+            if(group1 != null) {BoxTitleString += (" " + group1);}  
+            if(group2 != null) {BoxTitleString += ("." + group2);}  
+            if(group3 != null) {BoxTitleString += ("." + group3);}  
+            BoxTitleString += ": "
+            if(optionalTitle != null) {BoxTitleString += (" " + optionalTitle);}
+
+            BoxTitle.innerHTML = "<b>" + BoxTitleString + "</b>";
+            BoxTitle.style = "position: relative; top: 2px; left: 8px; font-family: 'Times New Roman', Times, serif; font-size: 20px; color:black"
+
+            const style = document.createElement('style');
+            style.textContent = QuestionAnswerCSS;
+
+            //Create the other graphics, and put in the content.        
+                //Content:      
+                var contentHolder = document.createElement("div");
+                var contentBackground = document.createElement("div");    
+
+                contentHolder.innerHTML = JaxToCustomElementContent(content);   
+                contentHolder.style = "width: " + (parseInt(customWidth) - 20).toString() + "px; position: relative; top: 10px; margin-left: 10px;";
+            
+                var HeightDeterminer = document.createElement("div");
+                contentBackground.appendChild(contentHolder);
+                contentBackground.appendChild(HeightDeterminer);
+                docHeight = parseInt($(HeightDeterminer).position());
+
+                contentHolder.style.height = ((docHeight)*0.01).toString() + "px";
+
+                contentBackground.style.height = ((docHeight)*0.01).toString() + "px";
+                contentBackground.style = "width: " + customWidth + "px; position: relative; top: 0px; background-color: rgb(113, 187, 183); left: " + (0.5*(500 - customWidth)).toString() + "px;";
+
+                //Tab 
+                var tab = document.createElement("div");
+                tab.style = "width: " + customWidth + "px; background-color: rgb(78, 230, 222); margin-left: " + (0.5*(500 - customWidth) ).toString() + "px; margin-top: 16px;"; tab.style.height = "30px";
+                tab.appendChild(BoxTitle);
+
+            // Attach the created elements to the shadow dom
+            shadow.appendChild(style);
+            shadow.appendChild(tab);
+            shadow.appendChild(contentBackground);  
+        }
+
+        }
+        customElements.define("q-stion",QuestionStart);
+
+        class AnswerBox extends HTMLElement {
+
+        constructor() {
+            super();
+
+            //Define attributes
+            const content = this.getAttribute('content');
+            const boxType = this.getAttribute("t");
+            const hintNumber = this.getAttribute("n");
+            const hasTopMargin = this.getAttribute("margin");
+            var customWidth = this.getAttribute("customWidth");
+            if(customWidth == null) {customWidth = "500";}
+            var contentHeight = parseInt(this.getAttribute('h'));
+
+            //Set up shadow
+            var shadow = this.attachShadow({mode: 'open'});
+
+            //Define elements
+            var tab = document.createElement("div");
+            var contentBackground = document.createElement("div");    
+            var contentHolder = document.createElement("div");
+            var Masker = document.createElement("div");
+            var DropdownButton = document.createElement("img");
+            DropdownButton.src = "Assets/GUI/DropDown.png";
+            const style = document.createElement('style');
+            style.textContent = QuestionAnswerCSS;
+
+            //Create title
+            var BoxTitle = document.createElement("p");
+            var BoxTitleString = "";
+            if(boxType != null) {
+                BoxTitleString = "Hint ";
+                if(hintNumber != null){
+                    BoxTitleString = BoxTitleString + "#" + hintNumber;
+                }
+            } else {BoxTitleString = "Answer "}
+
+            BoxTitle.innerHTML = "<b>" + BoxTitleString + "</b>";
+            BoxTitle.style = "position: relative; top: -40px; left: 30px; font-family: 'Times New Roman', Times, serif; font-size: 20px; color:black"
+
+            //Style elements
+                //Styling changes based on user defined properties:
+                    //Answer or hint?
+                    var color = (boxType == null) ? "rgb(129, 168, 70);" : "rgb(192,209,132);";
+                    tab.style = "width: " + customWidth + "px;" +
+                                "margin-left: " + (0.5*(500 - customWidth)).toString() + "px;" +
+                                "background-color:" + color;
+                    tab.style.height = "30px";
+                    
+                    //Top margin or not?
+                    if(hasTopMargin != null) {tab.style = "width: " + customWidth + "px;" + 
+                                                        "margin-left: " + (0.5*(500 - customWidth)).toString() + "px;" +
+                                                        "margin-top: 16px;" +
+                                                        "background-color: rgb(192, 209, 132);";}
+                //Content:
+                    //Style contentHolder
+                    contentHolder.innerHTML = JaxToCustomElementContent(content); 
+                    contentHolder.style = "width: " + (parseInt(customWidth) - 20).toString() + "px; position: relative; top: 10px; margin-left: 10px;";
+                    
+                    //Calculate height
+                    var HeightDeterminer = document.createElement("div");
+                    contentBackground.appendChild(contentHolder);
+                    contentBackground.appendChild(HeightDeterminer);
+                    contentHeight = parseInt($(HeightDeterminer).position());
+
+                    //Actually set the height
+                    contentHolder.style.height = ((contentHeight)*0.01).toString() + "px";
+                    contentBackground.style.height = ((contentHeight)*0.01).toString() + "px";
+                    console.log("contentBackground.height = " + contentBackground.style.height);
+
+                    //Style contentBackground
+                    contentBackground.style = "width: " + customWidth + "px;" +
+                                            "margin-left: " + (0.5*(500 - customWidth) ).toString() + "px;" +
+                                            "background-color: rgb(211, 219, 179);";
+                
+                //Dropdown:
+                DropdownButton.style = "width: 20px; height:20px;" + 
+                                        "position: relative;" + 
+                                        "left: 5px; top: 5px;";
+
+            //Add childs to parents:
+            tab.appendChild(DropdownButton);
+            tab.appendChild(BoxTitle);
+            contentBackground.appendChild(contentHolder);
+
+            //Handle mask
+            Masker.appendChild(contentBackground);
+            Masker.style = "width: " + customWidth.toString() + "px; " +
+                            "height: " + (0).toString() + "px; " +
+                            "-webkit-clip-path: inset(0 0 " + (0).toString() + "% 0);";          
+
+            //Handle animation:
+            var animT = 0;
+            var amountToMoveDown;
+            var MaskerHeight = 0; var clipPercentage = 100;
+            var isDisplayed = false;
+            var currentlyMoving = false;
+
+            DropdownButton.addEventListener("click", function() {
+                amountToMoveDown = ((contentHeight)*0.01 + 20)/15;
+                if(!currentlyMoving) {
+                    if(isDisplayed){requestAnimationFrame(HideContents);}
+                    else{requestAnimationFrame(ShowContents);}    
+                    isDisplayed = !isDisplayed;
+                    currentlyMoving = true;
+                }
+            })
+
+            function ShowContents() {
+                
+                MaskerHeight += amountToMoveDown;
+                clipPercentage = (1 - MaskerHeight/(contentHeight + 20))*100;
+
+                Masker.style = "height: " + (MaskerHeight + 20).toString() + "px; " +
+                               "-webkit-clip-path: inset(0 0 " + clipPercentage.toString() + "% 0);" + 
+                               "width: " + customWidth.toString() + "px; ";
+
+                if(MaskerHeight <= contentHeight + 20) {requestAnimationFrame(ShowContents);} 
+                else{
+                    console.log("Done showing contents! The contentHeight = " + contentHeight.toString());
+                    Masker.style = "height: " + (contentHeight + 20).toString() + "px; " +
+                                   "-webkit-clip-path: inset(0, 0, 0, 0);" + 
+                                   "width: " + customWidth.toString() + "px; ";
+
+                    MaskerHeight = contentHeight + 20;
+                    clipPercentage = 0;
+                    currentlyMoving = false;
+                }
+            }
+
+            function HideContents() {
+
+                MaskerHeight -= amountToMoveDown;
+                clipPercentage = (1 - MaskerHeight/(contentHeight + 20))*100;
+
+                Masker.style = "width: " + customWidth.toString() + "px; " +
+                               "height: " + (MaskerHeight + 20).toString() + "px; " +
+                               "-webkit-clip-path: inset(0 0 " + clipPercentage.toString() + "% 0);";
+
+                if(MaskerHeight >= 0) {requestAnimationFrame(HideContents);} 
+                else{
+                    MaskerHeight = 0;
+                    clipPercentage = 100;
+                    Masker.style = "height: 0px; " +
+                                   "-webkit-clip-path: inset(0 0 100% 0);" + 
+                                   "width: " + customWidth.toString() + "px; ";
+                    currentlyMoving = false;
+                }
+            }
+
+            //Add to DOM:
+            shadow.appendChild(style);
+            shadow.appendChild(tab); shadow.appendChild(Masker); 
+            }
+
+        }
+        customElements.define('answer-box', AnswerBox);
+
+        class Pictures extends HTMLElement {
+            constructor() {
+                super();
+
+                //Define attributes
+                const gridInfo = this.getAttribute('gi').split(",");
+                const sources = this.getAttribute('src').split(",");
+                const descriptions = this.getAttribute('dscr').split("|") 
+
+                //Prepare variables
+                var rowIndex = 0; var columnIndex = 0; var realNewRowIndex = 0;
+                var PictureDescriptionPairs = [];
+                var rowLength = 0; var rowFlexBox;
+
+                var shadow = this.attachShadow({mode: 'open'});
+
+                //Create elements
+                for(let i = 0; i < sources.length; i++) {
+                
+                    var tmpImg = document.createElement("img"); tmpImg.setAttribute("src",sources[i]);
+                    tmpImg.onload = function() {
+                        
+                        if(columnIndex==0){
+                            rowFlexBox = document.createElement('div');
+                            rowFlexBox.style.display="flex";
+                            rowFlexBox.style.flexDirection="row";
+                        }
+
+                        //Create the elements to be put in this row's flexbox
+                        var picture = document.createElement('span'); 
+                        picture.style.width = this.naturalWidth + "px";
+                        picture.appendChild(this);
+
+                        var DescripDiv = document.createElement('div');
+                            DescripDiv.style.wordWrap = "break-word";
+                            DescripDiv.style.width = this.naturalWidth + "px";
+                        var descripParagraph = document.createElement("p");               
+                            descripParagraph.innerHTML = descriptions[realNewRowIndex + columnIndex];
+                            descripParagraph.style = "text-align: center;"
+                        DescripDiv.appendChild(descripParagraph);
+                        
+                        var FullDiv = document.createElement("div");
+                        FullDiv.appendChild(picture);
+                        FullDiv.appendChild(DescripDiv);
+                        FullDiv.style.width = this.naturalWidth + "px"
+
+                        //Crete this row's flexbox
+                        rowFlexBox.appendChild(FullDiv);
+
+                        rowLength += this.naturalWidth + 20;
+                        columnIndex++;
+
+                        if(columnIndex == gridInfo[rowIndex]) { 
+                            
+                            rowFlexBox.style.justifyContent="space-between"
+                            rowFlexBox.style.marginLeft = ((500 - rowLength)/2).toString() + "px";
+
+                            shadow.appendChild(rowFlexBox);
+
+                            columnIndex = 0; realNewRowIndex += parseInt(gridInfo[rowIndex]); rowIndex++; 
+                            rowLength = 0;
+
+                            rowFlexBox = document.createElement('div');
+                            rowFlexBox.style.display="flex"; 
+                            rowFlexBox.style.flexDirection="row"; 
+                        }
+
+                    }
+                }
+            
+            }
+        }
+        customElements.define('pic-s', Pictures);
+    
+        class PrimitiveMath extends HTMLElement {
+            constructor() { 
+                super();
+                
+                //Define attributes
+                const matStr = this.getAttribute('m');
+                
+                //Prepare variables
+                var shadow = this.attachShadow({mode: 'open'});
+              
+                var mathStyle = 'margin-left:3px; margin-right:3px;'
+
+                const generalString = "../Assets/Chapter1/Talsystemmer/TalBilleder/CustomElement/";
+                var specificString = "";
+                var indexer = 0;
+
+                var spaceNode = document.createElement("img");
+                spaceNode.setAttribute("src","../Assets/Chapter1/Talsystemmer/TalBilleder/CustomElement/space.png");
+                spaceNode.style=mathStyle;
+                spaceNode.setAttribute("height","20em")
+
+                //Construct the math by substitution:
+                var matLength = matStr.length;
+                while(indexer < matLength) {
+
+                    var newNode = document.createElement("img");
+                    newNode.style=mathStyle;
+                    newNode.setAttribute("height","12em")
+
+                    var isNumber = false;
+                    var isPrefix = false; 
+
+                    switch(matStr.charAt(indexer)) {
+                       
+                        case '(': specificString="(.png"; break;
+                        case ')': specificString=").png"; break;
+                        case '+': specificString="plus.png"; break;
+                        case '-': specificString="minus.png"; break;
+                        case '*': specificString="gange.png"; break;
+                        case '/': specificString="divider.png"; break;
+                        case '=': specificString="ligmed.png"; break;
+                        case 'h': specificString="h.png"; break;
+                        case '.': specificString="punktum.png"; break;
+                        case 'q': specificString="10Symbol.png"; break;
+                       
+                        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': 
+                            isNumber=true; break;
+                        default: 
+                            isPrefix=true; indexer++; break;
+                    }
+
+                    if(!isPrefix && !isNumber) {
+                        newNode.setAttribute("src",generalString+specificString);
+                        shadow.appendChild(newNode);
+                        indexer++;
+                    }
+                    else if(!isPrefix) {
+                        //Get final index of number
+                        var fI = indexer + 1; //fI = finalIndex
+                        var fIC = matStr.charAt(fI);
+                        while((fIC=='0'||fIC =='1'||fIC =='2'||fIC =='3'||fIC =='4'||fIC =='5'||fIC =='6'||fIC =='7'||fIC =='8'||fIC =='9') && fI < matLength) {
+                            fI++; fIC = matStr.charAt(fI);
+                            }          
+
+                        //Determine what symbol to draw (Names matching in directory):
+                        var chosenSymbol = matStr.charAt(indexer - 1);
+                        switch(chosenSymbol) {
+                            case 'A': chosenSymbol="A";break;
+                            case 'B': chosenSymbol="B";break;
+                            case 'C': chosenSymbol="C";break;
+                            case 'D': chosenSymbol="D";break;
+                            case 'E': chosenSymbol="E";break;
+                            case 'F': chosenSymbol="F";break;
+                            case 'G': chosenSymbol="G";break;
+                            case 'W': chosenSymbol="w";break;
+                            default: chosenSymbol="bar"
+                        }
+
+                        if(chosenSymbol == null) {chosenSymbol = "bar";} 
+                        
+                        //Determine how many times to draw the symbol.:
+                        var strNum = matStr.substring(indexer,fI); 
+                        var symbolCount = parseInt(matStr.substring(indexer,fI));
+
+                        //Construct the number to shadow DOM
+                        var qoutient = Math.floor(symbolCount/4); 
+                        var remainder = symbolCount - qoutient*4; 
+
+                        if(remainder > 0) {
+                            newNode.setAttribute("src",generalString + chosenSymbol + remainder.toString() + ".png");
+                            shadow.appendChild(newNode);
+                        } else if (strNum == 0) {
+                            newNode.setAttribute("src",generalString + chosenSymbol + "0.png");
+                            shadow.appendChild(newNode);
+                        }
+
+                        for(let i = 0; i < qoutient; i++) {
+                            var FourNode = document.createElement("img");
+                            FourNode.setAttribute("src",generalString + chosenSymbol + "4.png");
+                            FourNode.style=mathStyle;
+                            FourNode.setAttribute("height","12em")
+
+                            shadow.appendChild(FourNode);
+                            //shadow.appendChild(spaceNode.cloneNode());
+
+                            FourNode.style=mathStyle;               
+                        }       
+
+                        //Advance the indexer:
+                        indexer += strNum.length;
+
+                    }
+                    
+                }
+    
+            }
+        }
+        customElements.define('p-m', PrimitiveMath);
+
+    </script>
+
+</body>
+</html>
